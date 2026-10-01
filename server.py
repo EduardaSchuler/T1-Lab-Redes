@@ -26,6 +26,7 @@ STATUS_TEXT = {
     403: "Forbidden",
     404: "Not Found",
     405: "Method Not Allowed",
+    500: "Internal Server Error",
 }
 
 TIPOS_MIME = {
@@ -41,6 +42,7 @@ TIPOS_MIME = {
     ".pdf": "application/pdf",
 }
 
+HEX = b"0123456789abcdefABCDEF"
 TAMANHO_MAXIMO_CABECALHO = 16 * 1024
 TAMANHO_MAXIMO_CORPO = 1024 * 1024
 
@@ -73,12 +75,9 @@ def decodificar_percent(texto):
             i += 1
             continue
         par = bruto[i + 1 : i + 3]
-        if len(par) != 2:
+        if len(par) != 2 or any(c not in HEX for c in par):
             raise RequisicaoInvalida()
-        try:
-            saida.append(int(par, 16))
-        except ValueError:
-            raise RequisicaoInvalida()
+        saida.append(int(par, 16))
         i += 3
     try:
         resultado = saida.decode("utf-8")
@@ -117,16 +116,15 @@ def montar_cabecalho(status, servidor, manter_conexao, timeout, tipo, tamanho, e
     return ("\r\n".join(linhas) + "\r\n\r\n").encode("iso-8859-1")
 
 
-def enviar_arquivo(conexao, caminho, cabecalho, somente_cabecalho):
+def enviar_arquivo(conexao, arquivo, cabecalho, somente_cabecalho):
     conexao.sendall(cabecalho)
     if somente_cabecalho:
         return
-    with open(caminho, "rb") as arquivo:
-        while True:
-            pedaco = arquivo.read(65536)
-            if not pedaco:
-                break
-            conexao.sendall(pedaco)
+    while True:
+        pedaco = arquivo.read(65536)
+        if not pedaco:
+            break
+        conexao.sendall(pedaco)
 
 
 def enviar_erro(conexao, cfg, status, manter_conexao, somente_cabecalho, extras=()):
@@ -169,11 +167,19 @@ def responder(conexao, cfg, metodo, alvo, manter_conexao):
     if not os.path.isfile(caminho):
         return enviar_erro(conexao, cfg, 404, manter_conexao, somente_cabecalho)
 
-    tamanho = os.path.getsize(caminho)
-    cabecalho = montar_cabecalho(
-        200, cfg.nome, manter_conexao, cfg.timeout, tipo_mime(caminho), tamanho, []
-    )
-    enviar_arquivo(conexao, caminho, cabecalho, somente_cabecalho)
+    try:
+        arquivo = open(caminho, "rb")
+    except PermissionError:
+        return enviar_erro(conexao, cfg, 403, manter_conexao, somente_cabecalho)
+    except OSError:
+        return enviar_erro(conexao, cfg, 500, manter_conexao, somente_cabecalho)
+
+    with arquivo:
+        tamanho = os.fstat(arquivo.fileno()).st_size
+        cabecalho = montar_cabecalho(
+            200, cfg.nome, manter_conexao, cfg.timeout, tipo_mime(caminho), tamanho, []
+        )
+        enviar_arquivo(conexao, arquivo, cabecalho, somente_cabecalho)
     return 200
 
 
@@ -190,18 +196,30 @@ def interpretar_requisicao(dados):
     metodo, alvo, versao = partes
     if not metodo.isalpha() or versao not in ("HTTP/1.1", "HTTP/1.0"):
         raise RequisicaoInvalida()
+    if not alvo.startswith("/"):
+        raise RequisicaoInvalida()
 
     cabecalhos = {}
     for linha in linhas[1:]:
         if ":" not in linha:
             raise RequisicaoInvalida()
         nome, valor = linha.split(":", 1)
-        cabecalhos[nome.strip().lower()] = valor.strip()
+        if not nome or nome != nome.strip():
+            raise RequisicaoInvalida()
+        nome = nome.lower()
+        if nome == "content-length" and nome in cabecalhos:
+            raise RequisicaoInvalida()
+        cabecalhos[nome] = valor.strip()
+
+    if versao == "HTTP/1.1" and not cabecalhos.get("host"):
+        raise RequisicaoInvalida()
 
     return metodo, alvo, versao, cabecalhos
 
 
 def tamanho_do_corpo(cabecalhos):
+    if "transfer-encoding" in cabecalhos:
+        raise RequisicaoInvalida()
     try:
         tamanho = int(cabecalhos.get("content-length", "0"))
     except ValueError:
