@@ -1,30 +1,30 @@
 # T1-Lab-Redes
 
-### funcionamento dos metodos principais:
+### Funcionamento dos métodos principais:
 
-decodificar_percent: Percorre o texto byte a byte: quando acha um %, lê os dois bytes seguintes, interpreta como hexadecimal e junta o byte decodificado no resultado
+- decodificar_percent: Percorre o texto byte a byte: quando acha um %, lê os dois bytes seguintes, interpreta como hexadecimal e junta o byte decodificado no resultado
 
-resolver_string: Corta query string e fragment, decodifica percent-encoding, tira a / inicial e junta com a raiz.
+- resolver_arquivo: Corta query string e fragment, decodifica percent-encoding, tira a / inicial e junta com a raiz configurada, verificando se o caminho permanece dentro dela.
 
-montar_cabecalho: Monta os cabeçalhos de uma resposta HTTP como texto
+- montar_cabecalho: Monta os cabeçalhos de uma resposta HTTP como texto
 
-enviar_arquivo: Manda o cabeçalho pelo socket. Se for uma requisição HEAD, para por aí. Senão, abre o arquivo em modo binário e vai lendo em blocos de 64 KB, mandando cada bloco pelo socket.
+- enviar_arquivo: Manda o cabeçalho pelo socket. Se for uma requisição HEAD, para por aí. Senão, abre o arquivo em modo binário e vai lendo em blocos de 64 KB, mandando cada bloco pelo socket.
 
-enviar_erro:Mesma lógica para respostas de erro, monta um corpo HTML simples com o código e a descrição, gera o cabeçalho via montar_cabecalho e manda os dois pelo socket.
+- enviar_erro: Mesma lógica para respostas de erro, monta um corpo HTML simples com o código e a descrição, gera o cabeçalho via montar_cabecalho e manda os dois pelo socket.
 
-responder: É o "roteador" que decide o que fazer com a requisição já interpretada.
+- responder: É o "roteador" que decide o que fazer com a requisição já interpretada.
 
-interpretar_requisicao: Recebe os bytes brutos do cabeçalho e extrai método, alvo e versão.
+- interpretar_requisicao: Recebe os bytes brutos do cabeçalho e extrai método, alvo e versão.
 
-tamanho_do_corpo: Lê o Content-Length dos cabeçalhos para saber quantos bytes de corpo vêm depois do cabeçalho.
+- tamanho_do_corpo: Lê o Content-Length dos cabeçalhos para saber quantos bytes de corpo vêm depois do cabeçalho.
 
-deve_fechar: Olha o cabeçalho Connection e verifica se um dos valores é close.
+- deve_fechar: Olha o cabeçalho Connection e verifica se um dos valores é close.
 
-atender: Roda em loop, atendendo uma requisição por vez na mesma conexão
+- atender: Roda em loop, atendendo uma requisição por vez na mesma conexão
 
 
 
-### como testar:
+### Como testar:
 
 **A** = máquina do servidor, **B** = máquina do cliente.
 
@@ -35,7 +35,7 @@ mkdir -p www
 echo "<h1>ola</h1>" > www/index.html
 echo "arquivo a" > www/a.txt
 echo "arquivo b" > www/b.txt
-python servidor.py --port 8080 --root ./www
+python server.py --port 8080 --root ./www
 ```
 
 Descubra o IP do A (`ip -4 addr` no Linux, `ipconfig` no Windows), por exemplo `192.168.0.10`.
@@ -55,8 +55,8 @@ curl -i http://IP:8080/a.txt              # 200
 curl -I http://IP:8080/a.txt              # HEAD: sem corpo
 curl -i http://IP:8080/nao-existe         # 404
 curl -i -X POST -d "x" http://IP:8080/    # 405
-curl -i --path-as-is "http://IP:8080/../servidor.py"      # 403
-curl -i --path-as-is "http://IP:8080/%2e%2e/servidor.py"  # 403
+curl -i --path-as-is "http://IP:8080/../server.py"      # 403
+curl -i --path-as-is "http://IP:8080/%2e%2e/server.py"  # 403
 curl -v http://IP:8080/a.txt http://IP:8080/b.txt         # reutiliza a conexão
 ```
 
