@@ -1,4 +1,4 @@
-# Apoio ao relatório e à apresentação — T1-Lab-Redes
+# Apoio ao relatório e à apresentação do T1-Lab-Redes
 
 Este documento reúne a descrição do funcionamento do servidor, os procedimentos e resultados dos testes realizados entre dois computadores Windows e explicações para apoiar o relatório e a apresentação. Adapte a redação às regras da disciplina e confirme os dados de ambiente que não foram registrados durante os testes.
 
@@ -249,7 +249,7 @@ Uma forma simples de relacionar o experimento ao modelo OSI:
 2. **Transporte (TCP):** o socket entregou o fluxo de bytes ao TCP. O TCP transportou os bytes de forma confiável entre as portas dos dispositivos. No servidor, a aplicação escutou na porta `8080`; no cliente, o sistema operacional usou uma porta temporária.
 3. **Rede (IP):** o endereçamento IP identificou o destino na rede local: o B enviou os dados ao A, no endereço `192.168.0.11`.
 4. **Enlace (Wi-Fi/Ethernet):** a rede local levou os dados entre os dispositivos usando a tecnologia de enlace disponível. O teste registrou a interface `Ethernet` para a rota do B e o adaptador Wi-Fi do A; esses nomes de interface, por si só, não demonstram o meio físico exato usado em todo o percurso.
-5. **Física:** os bits são representados e transmitidos pelo meio físico — por sinais de rádio no trecho Wi-Fi ou sinais elétricos/ópticos num trecho cabeado. A evidência coletada confirma a comunicação IP/TCP e HTTP, não uma captura ou análise dos sinais físicos.
+5. **Física:** os bits são representados e transmitidos pelo meio físico, por sinais de rádio no trecho Wi-Fi ou sinais elétricos/ópticos num trecho cabeado. A evidência coletada confirma a comunicação IP/TCP e HTTP, não uma captura ou análise dos sinais físicos.
 
 Em termos didáticos, o envio percorre as camadas em direção ao meio de comunicação e a recepção faz o caminho inverso. O **socket é uma interface de programação entre a aplicação e os serviços de transporte do sistema operacional**; não é uma camada física, nem é onde os arquivos ficam guardados. O **TCP transporta os bytes**, mas não decide salvar o arquivo. Nesse teste, a leitura do original foi feita pelo servidor no disco do A; o armazenamento permanente de uma cópia no B exigiria uma opção explícita de download, que não foi utilizada.
 
@@ -319,3 +319,160 @@ Não. É um projeto didático para estudar sockets, HTTP, validação de entrada
 9. **Conclusão:** síntese do que foi aprendido e do que os resultados permitem afirmar.
 
 Ao inserir capturas de tela, identifique cada uma com número, legenda e referência no texto. Evite mostrar informações pessoais ou dados de rede que não sejam necessários ao relatório.
+
+## 13. Histórico do que já fizemos
+
+Esta seção é o nosso diário de bordo. A ideia é que qualquer uma de nós consiga ver o que já foi feito, o que foi decidido e o que ainda falta.
+
+### 13.1 Linha do tempo
+
+| Quando | O que aconteceu |
+|---|---|
+| Antes de 01/10/2026 | O servidor (`server.py`) foi escrito em Python com sockets, com GET, HEAD, os códigos 200, 400, 403, 404 e 405, thread por conexão, keep-alive e timeout. Os commits estão na branch `main` e na `teste-dois-dispositivos`. |
+| 01/10/2026 | Primeiro teste com dois computadores Windows na mesma rede. O A (192.168.0.11) rodou o servidor e o B (192.168.0.3) fez as requisições. Foram feitos os testes T01 a T13 do plano de testes e as capturas de tela ficaram na pasta `Anexos/`. Um acesso pelo IP da Radmin VPN (26.243.101.53) deu tempo esgotado, e o IP da rede local funcionou. |
+| 01/10/2026 | O rascunho do relatório (`Relatório T1 Lab Redes.docx`) foi montado com os comandos e as respostas de cada teste. |
+| 03/10/2026 | Clonamos o repositório em `Downloads\T1-Lab-Redes`, entramos na branch `teste-dois-dispositivos` e juntamos o enunciado e a pasta das aulas práticas como material de consulta. |
+| 04/10/2026 | O relatório foi completado com o Claude. Também foram criados `medir.py`, `analisar_captura.py` e a página de interoperabilidade, o README foi refeito e o relatório foi enxugado para caber no limite de 8 páginas (arquivo `Relatório T1 Lab Redes - v3.docx`). Os detalhes estão logo abaixo. |
+
+### 13.2 O que foi feito na sessão de 04/10/2026
+
+- Lemos o enunciado inteiro e comparamos com o código e com os testes que já existiam. O servidor atende o que a Parte 1 e a Parte 2 pedem de implementação.
+- Completamos o relatório (v2): problema, arquitetura, estratégia de concorrência, tabela de conformidade, demonstração de segurança, demais casos de teste, seção da Parte 2 e considerações finais. Tudo que depende de Wireshark ou de `ping` ficou marcado em amarelo como pendente, para não inventarmos número nenhum.
+- Criamos o `medir.py`, o cliente que faz as 10 requisições em C1 (uma conexão por requisição) e em C2 (uma conexão só). Testamos a lógica apenas em localhost.
+- Rodamos mais tentativas de travessia de diretório em localhost (`/..%2fserver.py`, `/%2e%2e%2fserver.py`, `/a.txt/../../server.py`, `/..%5cserver.py` e `/%252e%252e/server.py`). Todas deram 403, e a dupla codificação deu 404 porque vira um nome literal que não existe, sem sair da raiz. Também confirmamos em localhost que o HEAD devolve os mesmos cabeçalhos do GET, sem corpo, e que o servidor aguenta requisições coladas (pipelining) e requisições chegando byte a byte.
+- Pontos que descobrimos no caminho: o README da `main` ainda citava `servidor.py` (o arquivo se chama `server.py`) e os `.txt` de teste têm BOM, por isso ficaram com 14 bytes. Decidimos não recriar os `.txt`, para os prints que já existem continuarem batendo com os arquivos.
+- Criamos a página de interoperabilidade em `www/`: `index.html` com `estilo.css`, `script.js`, `banner.png` e `logo.jpg`. Abrimos a página no navegador contra o servidor e as cinco requisições (HTML, CSS, banner, logo e script) voltaram 200.
+- Criamos o `analisar_captura.py`, que lê o `.pcapng` do Wireshark e calcula handshakes, pacotes, bytes, tempo, economia de C2, overhead de abrir e fechar conexões e RTTs a mais. Ele foi testado só com capturas sintéticas montadas à mão, em que os números esperados eram conhecidos, e bateu. Falta testar com uma captura de verdade.
+- Refizemos o `README.md` com os argumentos, a pasta `www/`, o passo a passo das medições e o teste de interoperabilidade.
+- Refizemos o relatório como `Relatório T1 Lab Redes - v3.docx`. O texto ficou mais curto e em linguagem mais direta, e os prints viraram uma grade de figuras com legenda, para caber em poucas páginas (hoje ficou em 7, contando a capa). O `ipconfig` foi recortado para mostrar só os IPv4, sem expor os endereços IPv6. Os prints originais continuam na pasta `Anexos/`.
+- Esclarecemos um ponto do enunciado: o teste de concorrência que já tínhamos (uma conexão ociosa e um `curl`, os dois no dispositivo B) prova que o servidor atende em paralelo, mas o enunciado pede duas máquinas distintas. O log do servidor só mostra o IP 192.168.0.3, então falta repetir com o A e o B pedindo ao mesmo tempo.
+
+### 13.3 O que continua faltando
+
+A lista completa está no checklist da seção 14.1 e os passos de cada tarefa estão no arquivo `TAREFAS.md`. Em resumo: capturas do Wireshark, RTT com `ping`, medição C1 e C2 de verdade, teste com duas máquinas ao mesmo tempo, print da página de interoperabilidade no navegador, PDF do relatório e o pacote `.zip` de entrega. Esses itens dependem de rodar tudo com as duas máquinas na mesma rede.
+
+## 14. Guia de apresentação
+
+O professor deixou claro que a apresentação vale 25% e que o teste de interoperabilidade vale 20%, os dois feitos ao vivo. Além disso, quem não consegue explicar o código não é considerado autor dele. Então o objetivo é que as três consigam explicar qualquer parte do `server.py` com as próprias palavras.
+
+### 14.1 Checklist do que falta (de acordo com o enunciado)
+
+**Código e pasta de teste**
+- [x] Criar uma página HTML em `www/` com imagem e CSS para o teste de interoperabilidade (feito: `index.html`, `estilo.css`, `script.js`, `banner.png` e `logo.jpg`).
+- [x] Sobre o BOM dos `.txt`: decidimos manter como está (14 bytes) e explicar no relatório.
+- [x] README da entrega com como rodar, argumentos (`--port`, `--root`, `--host`, `--timeout`, `--name`) e `server.py` em todos os exemplos (feito).
+- [ ] Confirmar que o servidor roda na VDI sem administrador e sem instalar nada.
+
+**Verificação antes de medir**
+- [ ] Anotar o IP das duas máquinas (`ipconfig`) e testar `ping` entre elas.
+- [ ] Confirmar que o Wireshark lista e captura na interface de rede.
+
+**Parte 1 (evidências)**
+- [ ] Repetir no B, pela rede, a terceira tentativa de travessia (`curl.exe --path-as-is -i "http://192.168.0.11:8080/..%2fserver.py"`) e guardar a captura de tela.
+- [ ] Captura do Wireshark de um GET bem-sucedido do B ao A, marcando o handshake, o pacote da requisição, os pacotes da resposta e o encerramento.
+- [ ] Evidência de duas máquinas distintas sendo atendidas ao mesmo tempo (log do servidor com dois IPs de origem em instantes próximos ou uma captura).
+- [ ] Repetir o `curl -v` com `a.txt` e `b.txt` já existindo, para mostrar duas respostas 200 na mesma conexão.
+
+**Parte 2 (medições)**
+- [ ] Registrar o RTT médio com `ping` entre as máquinas.
+- [ ] Rodar C1 (`python medir.py --host IP --port 8080 --path /a.txt --modo c1`) com a captura ligada e salvar `capturas/c1.pcapng`.
+- [ ] Rodar C2 (`--modo c2`) com a captura ligada e salvar `capturas/c2.pcapng`.
+- [ ] Extrair de cada captura: handshakes completos, total de pacotes, bytes totais e tempo total.
+- [ ] Calcular a economia percentual de pacotes e de bytes.
+- [ ] Quantificar quantos pacotes e bytes C1 gasta só abrindo e fechando conexões.
+- [ ] Calcular quantos RTTs a mais o C1 gastou e explicar de onde vêm (o handshake de cada conexão nova).
+
+**Relatório**
+- [ ] Trocar todos os trechos amarelos do `Relatório T1 Lab Redes - v2.docx` pelos resultados reais.
+- [ ] Preencher a versão do Python e o modelo dos dispositivos.
+- [ ] Escrever a conclusão dizendo em que condição de rede a conexão persistente ganha ainda mais (muitas conexões e RTT alto), usando os números medidos.
+- [ ] Exportar para PDF (documento único, cobrindo as duas partes) e conferir que ficou em até 8 páginas, como o professor pediu em aula. Hoje o v3 tem 7 com a capa, e ainda vão entrar as evidências novas (a seção Solução tem espaço sobrando na página 4).
+
+**Entrega**
+- [ ] Montar o `.zip` na mão para subir no Moodle: código-fonte (`server.py`, `medir.py`, `analisar_captura.py`), `README.md`, `www/`, `capturas/` e o relatório em PDF.
+- [ ] Não incluir no zip a pasta `Aulas práticas`, o enunciado nem a pasta `.git`.
+- [ ] Só uma pessoa do grupo faz a entrega no Moodle, antes do começo da aula de apresentação.
+
+**Dia da apresentação**
+- [ ] Combinar com o outro grupo quem testa primeiro, e trocar os IPs.
+- [ ] Liberar a porta no firewall do computador que vai rodar o servidor.
+- [ ] Ensaiar a explicação do código com as três presentes.
+
+### 14.2 Roteiro sugerido (uns 10 a 15 minutos)
+
+A divisão abaixo é só uma sugestão. Vale as três treinarem as partes umas das outras, porque o professor pode perguntar qualquer coisa para qualquer uma.
+
+| Parte | Tempo | O que mostrar | Sugestão de quem fala |
+|---|---|---|---|
+| 1. Abertura | 1 min | Qual era o problema: como o TCP afeta o desempenho do HTTP, e por que testar entre máquinas diferentes. | A definir |
+| 2. Arquitetura | 2 min | Passeio por `main`, `atender` e `responder`. Thread por conexão e por que escolhemos isso. | A definir |
+| 3. Demonstração ao vivo | 3 min | Os comandos da seção 14.4 em um computador contra o outro. | A definir |
+| 4. Segurança | 2 min | Por que `../` e `%2e%2e` dão 403. Explicar `realpath` e a checagem com `os.sep`. | A definir |
+| 5. Parte 2 | 3 min | Medição C1 e C2, a tabela, a economia e a conta em RTTs. | A definir |
+| 6. Fechamento | 1 min | Conclusão e limitações do servidor. | A definir |
+
+### 14.3 Passeio pelo código (por onde começar a explicar)
+
+Todos os números de linha são do `server.py` atual. A melhor forma de contar a história é seguir o caminho de uma requisição:
+
+1. **`main` (linha 295):** lê os argumentos, cria o socket, faz `bind` em `0.0.0.0` e fica no `accept`. Cada conexão vira uma thread.
+2. **`atender` (linha 237):** é o coração. Acumula bytes em um buffer até achar `\r\n\r\n`, separa o cabeçalho, trata o corpo e chama `responder`. Depois decide se mantém a conexão aberta. O timeout do socket está aqui.
+3. **`interpretar_requisicao` (linha 186):** confere a primeira linha (método, alvo e versão) e os cabeçalhos. Se algo estiver errado, levanta `RequisicaoInvalida` e a resposta é 400.
+4. **`responder` (linha 148):** decide entre 405, 400, 403, 404 e 200.
+5. **`resolver_arquivo` (linha 91) e `decodificar_percent` (linha 67):** é onde mora a segurança. Decodifica, junta com a raiz, normaliza com `realpath` e confere se continua dentro da raiz.
+6. **`montar_cabecalho` (linha 104), `enviar_arquivo` (linha 119) e `enviar_erro` (linha 130):** montam e mandam a resposta. No HEAD, o cabeçalho sai igual ao do GET e o corpo não é enviado.
+
+### 14.4 Roteiro da demonstração ao vivo
+
+No computador que roda o servidor (A):
+
+```powershell
+python .\server.py --port 8080 --root .\www
+```
+
+No outro computador (B), trocando `IP` pelo endereço do A:
+
+```powershell
+curl.exe -i http://IP:8080/a.txt
+curl.exe -I http://IP:8080/a.txt
+curl.exe -i http://IP:8080/nao-existe
+curl.exe -i -X POST -d "x" http://IP:8080/
+curl.exe --path-as-is -i "http://IP:8080/../server.py"
+curl.exe --path-as-is -i "http://IP:8080/%2e%2e/server.py"
+curl.exe -v http://IP:8080/a.txt http://IP:8080/b.txt
+```
+
+Dica: deixar o terminal do servidor visível na tela, porque o log mostra cada requisição chegando com o IP de origem. É uma prova bonita de que a conversa é entre duas máquinas.
+
+### 14.5 Teste de interoperabilidade (20% da nota)
+
+1. Conferir que a página HTML em `www/` carrega pelo menos uma imagem e um CSS. Assim o navegador faz várias requisições sozinho.
+2. Subir o servidor com `--host 0.0.0.0` (já é o padrão) e liberar a porta no firewall.
+3. Passar o IP e a porta para o outro grupo e pegar os deles.
+4. Abrir no navegador `http://IP_DO_OUTRO_GRUPO:PORTA/` e conferir se a página aparece completa, com a imagem.
+5. Se algo não carregar, olhar o log do servidor do grupo que está sendo acessado. Um `404` na imagem costuma ser nome ou pasta errada.
+6. Se o navegador pedir `/favicon.ico` e o log mostrar 404, está tudo bem, isso é normal.
+
+Cuidado: o servidor só conhece os tipos do enunciado (`.html`, `.css`, `.js`, `.json`, `.txt`, `.png`, `.jpg`, `.pdf`). Imagens em `.svg`, `.gif` ou `.webp` saem como `application/octet-stream` e o navegador pode não desenhar. Por isso, para a página de teste, o melhor é usar `.png` ou `.jpg`.
+
+### 14.6 Perguntas que o professor pode fazer (além das da seção 10)
+
+- **O que acontece se o `recv` devolver só metade da requisição?** O servidor continua acumulando no buffer até aparecer a linha vazia. Isso está no laço no começo de `atender`.
+- **E se chegarem duas requisições juntas?** O `partition` separa a primeira e o resto fica no buffer para a próxima volta do laço.
+- **Por que checar `raiz + os.sep` e não só o começo do caminho?** Para uma pasta vizinha com nome parecido (por exemplo `www2`) não passar pela checagem.
+- **Por que decodificar antes de verificar o caminho?** Porque `%2e%2e` é `..`. Se checássemos antes, o ataque passaria.
+- **Por que `%252e%252e` não escapa?** Decodificamos uma vez só. O resultado é o texto `%2e%2e`, que vira um nome de arquivo que não existe, e a resposta é 404.
+- **O `Content-Length` do HEAD é de quanto?** É o tamanho que o corpo teria no GET, como o enunciado pede.
+- **Por que uma requisição inválida fecha a conexão?** Depois de um erro de formato não dá para saber onde começa a próxima mensagem. Fechar é o jeito seguro.
+- **O que o `Keep-Alive: timeout=5` quer dizer?** Avisa ao cliente que o servidor fecha a conexão depois de 5 segundos sem uso.
+- **Thread por conexão aguenta 10 mil clientes?** Não muito bem, porque cada thread consome memória. Para a escala do laboratório funciona bem, e a alternativa seria I/O não bloqueante.
+- **Por que o C2 pode ter mais bytes de HTTP por requisição?** Porque as respostas persistentes carregam `Connection: keep-alive` e `Keep-Alive: timeout=5`. Mesmo assim, o total de bytes na rede cai, porque não há 10 handshakes e 10 encerramentos.
+- **De onde vem a diferença de tempo entre C1 e C2?** De um handshake a mais em cada conexão nova. Com 10 requisições, C1 abre 10 conexões e C2 abre 1, então esperamos cerca de 9 RTTs de diferença.
+
+### 14.7 Antes de entrar na sala
+
+- [ ] Servidor testado com a pasta `www` final.
+- [ ] Wireshark aberto e capturas salvas.
+- [ ] Relatório em PDF e zip prontos e já entregues.
+- [ ] Cada uma consegue explicar `atender`, `resolver_arquivo` e `montar_cabecalho` sem olhar.
+- [ ] Carregadores e adaptadores de rede à mão, caso a rede da sala isole os dispositivos (plano B: hotspot do celular).
