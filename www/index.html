@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>T1 Lab Redes - Servidor HTTP</title>
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <header>
+    <img src="banner.png" alt="Banner do trabalho de Laboratório de Redes" class="banner">
+    <h1>Servidor HTTP/1.1 sobre sockets TCP</h1>
+    <p>Página de teste do T1 de Laboratório de Redes (Grupo-PySock/1.0)</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>Se você está vendo isso, deu certo!</h2>
+      <p>Esta página foi entregue pelo nosso servidor, escrito do zero com sockets em Python.
+         O navegador pediu o HTML e depois pediu sozinho o CSS, as imagens e o script, ou seja,
+         várias requisições na mesma conexão persistente.</p>
+      <img src="logo.jpg" alt="Logo em JPEG" class="logo">
+    </section>
+
+    <section>
+      <h2>O que foi carregado</h2>
+      <ul>
+        <li><code>index.html</code> (text/html)</li>
+        <li><code>estilo.css</code> (text/css)</li>
+        <li><code>banner.png</code> (image/png)</li>
+        <li><code>logo.jpg</code> (image/jpeg)</li>
+        <li><code>script.js</code> (text/javascript)</li>
+      </ul>
+      <p id="status-js">Aguardando o script carregar...</p>
+    </section>
+
+    <section>
+      <h2>Outros arquivos para testar</h2>
+      <p><a href="a.txt">a.txt</a> e <a href="b.txt">b.txt</a></p>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

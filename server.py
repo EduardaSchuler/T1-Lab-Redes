@@ -236,6 +236,8 @@ def deve_fechar(cabecalhos):
 
 def atender(conexao, endereco, cfg):
     conexao.settimeout(cfg.timeout)
+    # cabecalho e corpo saem em dois sendall; sem isso o Nagle segura o corpo ate o ACK do cabecalho
+    conexao.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     buffer = b""
 
     try:
