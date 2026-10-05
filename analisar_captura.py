@@ -15,7 +15,8 @@ O que e contado (so pacotes TCP em que uma das portas e --port):
   - tempo total: do primeiro ao ultimo pacote da captura filtrada;
   - abrir e fechar conexao:
       abertura   = SYN, SYN/ACK e o primeiro ACK do cliente;
-      encerramento = pacotes com FIN ou RST e os pacotes sem dados que vem depois do primeiro FIN.
+      encerramento = pacotes sem dados com FIN ou RST e os pacotes sem dados que vem depois do primeiro FIN
+                     (um pacote que carrega dados junto com o FIN conta como dados, nao como encerramento).
 
 Cuidados: se a captura tiver outros programas usando a mesma porta, ou se voce ligou o
 Wireshark antes de apagar uma captura antiga, os numeros ficam errados. Comece cada
@@ -197,11 +198,11 @@ def analisar(caminho, porta):
         elif c.syn and c.synack and not c.ack_final and do_cliente and flags & ACK and not flags & (SYN | FIN | RST) and dados == 0:
             c.ack_final = eh_abertura = True
 
+        # pacote com dados nunca e overhead, mesmo que carregue o FIN junto (o servidor costuma
+        # mandar o fim do corpo e o FIN no mesmo pacote)
+        eh_fim = dados == 0 and not eh_abertura and (bool(flags & (FIN | RST)) or c.fin_visto)
         if flags & (FIN | RST):
             c.fin_visto = True
-            eh_fim = True
-        else:
-            eh_fim = c.fin_visto and dados == 0 and not eh_abertura
 
         if eh_abertura:
             c.pacotes_abertura += 1

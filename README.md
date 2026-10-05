@@ -12,7 +12,9 @@ Integrantes: Carolina Silveira de Oliveira da Silva, Larissa Oliveira da Silva e
 | `medir.py` | Cliente que faz as 10 requisições dos cenários C1 e C2. |
 | `analisar_captura.py` | Lê as capturas do Wireshark e calcula handshakes, pacotes, bytes, tempo e economia. |
 | `www/` | Pasta de teste servida pelo servidor, com a página do teste de interoperabilidade. |
-| `capturas/` | Capturas `.pcapng` das medições (`c1.pcapng` e `c2.pcapng`). |
+| `capturas/` | Capturas `.pcapng` do Wireshark: `c1.pcapng` e `c2.pcapng` (cenários C1 e C2) e `transacao_get_completa.pcapng` (um GET inteiro, com 10 pacotes). |
+| `Relatório T1 Lab Redes - Carol, Larissa e Maria Eduarda.pdf` | O relatório do trabalho, com as duas partes. |
+
 ## Como rodar
 
 Só precisa do Python 3. Não tem biblioteca para instalar e não precisa de administrador.
@@ -95,11 +97,11 @@ printf 'GET / HTTP/1.1\r\n\r\n' | nc IP 8080             # 400 (sem Host)
 
 ## Medições da Parte 2 (C1 e C2)
 
-O objetivo é comparar 10 requisições ao mesmo recurso em dois cenários: C1 (uma conexão nova por requisição) e C2 (uma única conexão persistente). Tudo é feito entre duas máquinas, com o servidor rodando no A e o cliente no B.
+O objetivo é comparar 10 requisições ao mesmo recurso em dois cenários: C1 (uma conexão nova por requisição) e C2 (uma única conexão persistente). Tudo é feito entre duas máquinas, com o servidor rodando no A e o cliente no B. O Wireshark pode ficar em qualquer uma das duas (no nosso caso, no A).
 
 1. No B, anote o RTT médio: `ping IP` (guarde a captura de tela).
-2. No B, abra o Wireshark na interface de rede e use o filtro `tcp.port == 8080`.
-3. **C1:** inicie a captura, rode o comando abaixo e pare a captura. Salve como `capturas/c1.pcapng`.
+2. Na máquina do Wireshark, abra a interface de rede (a do Wi-Fi ou Ethernet com o IP 192.168.x.x, não a de loopback) e escreva `tcp port 8080` no filtro de captura.
+3. **C1:** inicie a captura, rode o comando abaixo no B e pare a captura. Salve como `capturas/c1.pcapng`.
    ```bash
    python medir.py --host IP --port 8080 --path /a.txt --modo c1
    ```
